@@ -87,14 +87,20 @@ UNIX:   ixbatch.py -p /dev/tty2a -i entrada.txt -o salida.txt -s 9600
     args = parser.parse_args()
 
 
-    with open(args.input_file, mode='rb', buffering=1) as file: #leemos con rU (universal new-line), y con buffering=1 (1 línea)
+    with open(args.input_file, mode='rb', buffering=0) as file: #leemos con rU (universal new-line), y con buffering=1 (1 línea)
         device = '%s%s' % (COM_port_prefix, args.COM_port)
         printer = EpsonPrinter(deviceFile=device, speed=int(args.COM_speed), model=modelo_impresora, dummy=args.debug_on)
 
         for line in file:
             cmd = str(line.rstrip()) # cada linea es un comando, de acá para abajo laburamos con 'cmd'
-            #print 'LINEA: ', cmd
-            
+
+            cmd = str(cmd).replace("b'", "")
+            if cmd.endswith("'"):
+                cmd = cmd[:-1]
+            # print ('LINEAA: ', cmd)
+                
+            print ('LINEAA: ', cmd)
+
             if cmd.endswith('|'): #quitamos último '|' al final que está al pedo
                 cmd = cmd[:-1]
 
@@ -260,7 +266,8 @@ UNIX:   ixbatch.py -p /dev/tty2a -i entrada.txt -o salida.txt -s 9600
                     print('No se como ejecutar el comando:', cmd)
             else: # not cmd.startswith('@'): #línea NO contiene comando
                 if len(cmd.strip()) > 1:
-                    print('Linea no contiene comando:', cmd)
+                    # print('Linea no contiene comando:', cmd)
+                    aa=1
         #Termino de leer el archivo
         printer.close() # Libero el puerto de la impresora fiscal
 

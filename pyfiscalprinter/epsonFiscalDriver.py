@@ -78,14 +78,21 @@ class EpsonFiscalDriver:
             self._sequenceNumber = 0x20
 
     def _write( self, s ):
-        if isinstance(s, unicode):
+        # print("SS: ",s)
+        if isinstance(s, str):
             s = s.encode("latin1")
+        print("SS1: ",s)
+        s = str(s).replace("b'", "")
+        if s.endswith("'"):
+            s = s[:-1]
+        print("SS2: ",s)
+        
         debug( "_write", ", ".join( [ "%x" % ord(c) for c in s ] ) )
         self._serialPort.write( s )
 
     def _read( self, count ):
         ret = self._serialPort.read( count )
-        debug( "_read", ", ".join( [ "%x" % ord(c) for c in ret ] ) )
+        # debug( "_read", ", ".join( [ "%x" % ord(c) for c in ret ] ) )
         return ret
 
     def __del__( self ):
@@ -147,6 +154,11 @@ class EpsonFiscalDriver:
             if time.time() > timeout:
                 raise ComunicationError("Expir� el tiempo de espera para una respuesta de la impresora. Revise la conexi�n.")
             c = self._read(1)
+            c = str(c).replace("b'", "")
+            if c.endswith("'"):
+                c = c[:-1]
+            print("ccc: ",c)
+            #------------------
             if len(c) == 0:
                 continue
             if ord(c) in (0x12, 0x14): # DC2 o DC4
