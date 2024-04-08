@@ -1,0 +1,335 @@
+--- ./PybFiscal.py	(original)
++++ ./PybFiscal.py	(refactored)
+@@ -3,6 +3,7 @@
+ # from pyfiscalprinter.hasarPrinter import HasarPrinter 
+ #from hasarPrinter import HasarPrinter
+ from __future__ import print_function
++from builtins import str
+ from pyfiscalprinter.epsonFiscal import EpsonPrinter 
+ #from hasarPrinter import HasarPrinter
+ 
+--- ./pyfiscalprinter/fiscalGeneric.py	(original)
++++ ./pyfiscalprinter/fiscalGeneric.py	(refactored)
+@@ -1,9 +1,10 @@
+ # -*- coding: iso-8859-1 -*-
+ 
++from builtins import object
+ class PrinterException(RuntimeError):
+     pass
+ 
+-class PrinterInterface:
++class PrinterInterface(object):
+     """Interfaz que deben cumplir las impresoras fiscales."""
+ 
+     # Documentos no fiscales
+--- ./pyfiscalprinter/epsonFiscalDriver.py	(original)
++++ ./pyfiscalprinter/epsonFiscalDriver.py	(refactored)
+@@ -1,11 +1,18 @@
+ # -*- coding: iso-8859-1 -*-
+ from __future__ import print_function
++from future import standard_library
++standard_library.install_aliases()
++from builtins import map
++from builtins import hex
++from builtins import str
++from builtins import chr
++from builtins import object
+ from future.utils import raise_
+ import serial
+ import random
+ import time
+ import sys
+-import SocketServer
++import socketserver
+ import socket
+ import traceback
+ 
+@@ -37,7 +44,7 @@
+ class ProxyError(PrinterException):
+     errorNumber = 5
+ 
+-class EpsonFiscalDriver:
++class EpsonFiscalDriver(object):
+     WAIT_TIME = 10
+     RETRIES = 4
+     WAIT_CHAR_TIME = 0.1
+@@ -78,7 +85,7 @@
+             self._sequenceNumber = 0x20
+ 
+     def _write( self, s ):
+-        if isinstance(s, unicode):
++        if isinstance(s, str):
+             s = s.encode("latin1")
+         debug( "_write", ", ".join( [ "%x" % ord(c) for c in s ] ) )
+         self._serialPort.write( s )
+@@ -319,7 +326,7 @@
+                     break
+         return reply
+ 
+-class DummyDriver:
++class DummyDriver(object):
+     def close(self):
+         pass
+ 
+@@ -328,7 +335,7 @@
+         number = random.randint(0, 99999999)
+         return ["00", "00"] + [str(number)] * 11
+ 
+-class EpsonFiscalDriverProxy:
++class EpsonFiscalDriverProxy(object):
+     def __init__( self, host, port, timeout = 60.0, connectOnEveryCommand = False ):
+         self.connectOnEveryCommand = connectOnEveryCommand
+         self.timeout = timeout
+@@ -366,7 +373,7 @@
+             return eval( reply[7:] )
+         elif reply[:5] == "ERROR":
+             errorNum = int(reply[7:9])
+-            errorClass = filter( lambda x: x.errorNumber == errorNum, ServerErrors )
++            errorClass = [x for x in ServerErrors if x.errorNumber == errorNum]
+             if errorClass:
+                 raise errorClass[0]( reply[10:] )
+             else:
+@@ -418,16 +425,16 @@
+         fileOut.flush()
+     p.close()
+ 
+-class ReusableTCPServer(SocketServer.TCPServer):
++class ReusableTCPServer(socketserver.TCPServer):
+     def server_bind(self):
+         """Override server_bind to set socket options."""
+         self.socket.setsockopt(socket.SOL_SOCKET,
+             socket.SO_REUSEADDR, 1)
+-        return SocketServer.TCPServer.server_bind(self)
++        return socketserver.TCPServer.server_bind(self)
+ 
+ 
+ def socketServer(printerType, host, port, deviceFile, speed, timeout = 60, returnServer=False):
+-    class Handler( SocketServer.StreamRequestHandler ):
++    class Handler( socketserver.StreamRequestHandler ):
+         rbufsize = 1
+         wbufsize = 1
+         def handle( self ):
+--- ./pyfiscalprinter/agente.py	(original)
++++ ./pyfiscalprinter/agente.py	(refactored)
+@@ -14,12 +14,14 @@
+ from __future__ import print_function
+ from __future__ import absolute_import
+ 
++from future import standard_library
++standard_library.install_aliases()
+ __author__ = "Mariano Reingart <reingart@gmail.com>"
+ __copyright__ = "Copyright (C) 2014 Mariano Reingart"
+ __license__ = "GPL 3.0"
+ __version__ = "1.00a"
+ 
+-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
++from http.server import BaseHTTPRequestHandler, HTTPServer
+ import cgi
+ import time
+ import os
+@@ -73,7 +75,7 @@
+                 # obtengo la funciÃ³n a llamar
+                 fn = getattr(self.server.controlador, method) 
+                 callback = qs['callback'].pop()
+-                kwargs = dict([(k, v[0]) for k, v in qs.items() if v])
++                kwargs = dict([(k, v[0]) for k, v in list(qs.items()) if v])
+                 # ejecuto el mÃ©todo del controlador
+                 ret = fn(**kwargs)
+                 # reviso el valor devuelto (limpio si es excepciÃ³n):
+--- ./pyfiscalprinter/hasarPrinter.py	(original)
++++ ./pyfiscalprinter/hasarPrinter.py	(refactored)
+@@ -1,6 +1,10 @@
+ # -*- coding: iso-8859-1 -*-
+ from __future__ import print_function
+ from __future__ import absolute_import
++from builtins import chr
++from builtins import str
++from builtins import range
++from builtins import object
+ import string
+ import types
+ import logging
+@@ -17,7 +21,7 @@
+     pass
+ 
+ 
+-class FileDriver:
++class FileDriver(object):
+ 
+     def __init__(self, filename):
+         self.filename = filename
+@@ -34,7 +38,7 @@
+ 
+ 
+ def formatText(text):
+-    asciiText = unicodedata.normalize('NFKD', unicode(text)).encode('ASCII', 'ignore')
++    asciiText = unicodedata.normalize('NFKD', str(text)).encode('ASCII', 'ignore')
+     asciiText = asciiText.replace("\t", " ").replace("\n", " ").replace("\r", " ")
+     return asciiText
+ 
+@@ -42,7 +46,7 @@
+ NUMBER = 999990
+ 
+ 
+-class DummyDriver:
++class DummyDriver(object):
+ 
+     def __init__(self):
+         global NUMBER
+@@ -238,7 +242,7 @@
+         self.setHeader()
+         self.setTrailer()
+         doc = doc.replace("-", "").replace(".", "")
+-        if doc and docType != "3" and filter(lambda x: x not in string.digits, doc):
++        if doc and docType != "3" and [x for x in doc if x not in string.digits]:
+             # Si tiene letras se blanquea el DNI para evitar errores, excepto que sea
+             # docType="3" (Pasaporte)
+             doc, docType = " ", " "
+--- ./pyfiscalprinter/epsonFiscal.py	(original)
++++ ./pyfiscalprinter/epsonFiscal.py	(refactored)
+@@ -1,6 +1,12 @@
+ # -*- coding: iso-8859-1 -*-
+ from __future__ import print_function
+ from __future__ import absolute_import
++from __future__ import division
++from builtins import input
++from builtins import chr
++from builtins import str
++from past.utils import old_div
++from builtins import object
+ import string
+ import types
+ import logging
+@@ -12,7 +18,7 @@
+     pass
+ 
+ 
+-class FileDriver:
++class FileDriver(object):
+ 
+     def __init__(self, filename):
+         self.filename = filename
+@@ -27,16 +33,16 @@
+ 
+ 
+ def formatText(text):
+-    asciiText = unicodedata.normalize('NFKD', unicode(text)).encode('ASCII', 'ignore')
++    asciiText = unicodedata.normalize('NFKD', str(text)).encode('ASCII', 'ignore')
+     asciiText = asciiText.replace("\t", " ").replace("\n", " ").replace("\r", " ")
+     return asciiText
+ 
+ 
+-class DummyDriver:
++class DummyDriver(object):
+ 
+     def __init__(self):
+         try:
+-            self.number = int(raw_input("Ingrese el número de la última factura: "))
++            self.number = int(input("Ingrese el número de la última factura: "))
+         except EOFError:
+             # iniciar desde 0 (ejecutando sin stdin)
+             self.number = 0
+@@ -169,7 +175,7 @@
+ 
+     def _openBillCreditTicket(self, type, name, address, doc, docType, ivaType, isCreditNote,
+             reference=None):
+-        if not doc or filter(lambda x: x not in string.digits + "-.", doc or "") or not \
++        if not doc or [x for x in doc or "" if x not in string.digits + "-."] or not \
+                 docType in self.docTypeNames:
+             doc, docType = "", ""
+         else:
+@@ -300,10 +306,10 @@
+         else:
+             if self.model == "tm-220-af":
+                 # enviar sin el iva (factura A)
+-                priceUnitStr =  "%0.4f" % (price / ((100.0 + iva) / 100.0))
++                priceUnitStr =  "%0.4f" % (old_div(price, ((100.0 + iva) / 100.0)))
+             else:
+                 # enviar sin el iva (factura A)
+-                priceUnitStr = str(int(round((price / ((100 + iva) / 100)) * 100, 0)))
++                priceUnitStr = str(int(round((old_div(price, (old_div((100 + iva), 100)))) * 100, 0)))
+         ivaStr = str(int(iva * 100))
+         extraparams = self._currentDocument in (self.CURRENT_DOC_BILL_TICKET,
+             self.CURRENT_DOC_CREDIT_TICKET) and ["", "", ""] or []
+@@ -353,7 +359,7 @@
+             priceUnitStr = str(int(round(priceUnit * 100, 0)))
+         else:
+             # enviar sin el iva (factura A)
+-            priceUnitStr = str(int(round((priceUnit / ((100 + iva) / 100)) * 100, 0)))
++            priceUnitStr = str(int(round((old_div(priceUnit, (old_div((100 + iva), 100)))) * 100, 0)))
+         ivaStr = str(int(iva * 100))
+         extraparams = self._currentDocument in (self.CURRENT_DOC_BILL_TICKET,
+             self.CURRENT_DOC_CREDIT_TICKET) and ["", "", ""] or []
+--- ./pyfiscalprinter/controlador.py	(original)
++++ ./pyfiscalprinter/controlador.py	(refactored)
+@@ -13,7 +13,13 @@
+ "Interfaz de alto nivel para automatización de controladores fiscales"
+ from __future__ import print_function
+ from __future__ import absolute_import
+-
++from __future__ import division
++
++from future import standard_library
++standard_library.install_aliases()
++from builtins import str
++from builtins import input
++from past.utils import old_div
+ __author__ = "Mariano Reingart <reingart@gmail.com>"
+ __copyright__ = "Copyright (C) 2014 Mariano Reingart"
+ __license__ = "GPL 3.0"
+@@ -58,7 +64,7 @@
+ import os
+ import sys
+ import traceback
+-from cStringIO import StringIO
++from io import StringIO
+ from decimal import Decimal
+ from functools import wraps
+ 
+@@ -224,7 +230,7 @@
+                                               domicilio_cliente, nro_doc, doc_fiscal, 
+                                               pos_fiscal)
+         elif cbte_fiscal.startswith("NC"):
+-            if isinstance(referencia, unicode):
++            if isinstance(referencia, str):
+                 referencia = referencia.encode("latin1", "ignore")
+             ret = printer.openBillCreditTicket(letra_cbte, nombre_cliente, 
+                                                domicilio_cliente, nro_doc, doc_fiscal, 
+@@ -297,8 +303,8 @@
+         print(ret)
+         if len(ret) == 10:      # epson
+             qty = int(ret[3])
+-            subtotal = str(decimal.Decimal(ret[4]) / decimal.Decimal("100.000"))
+-            imp_iva = str(decimal.Decimal(ret[5]) / decimal.Decimal("100.000"))
++            subtotal = str(old_div(decimal.Decimal(ret[4]), decimal.Decimal("100.000")))
++            imp_iva = str(old_div(decimal.Decimal(ret[5]), decimal.Decimal("100.000")))
+         elif len(ret) == 8:     # hasar
+             qty = ret[2]
+             subtotal = ret[3]
+@@ -367,7 +373,7 @@
+         print("Running PyFiscalPrinter service.")
+         mainloop.run()
+     else:
+-        from ConfigParser import SafeConfigParser
++        from configparser import SafeConfigParser
+ 
+         DEBUG = '--debug' in sys.argv
+                 
+@@ -412,7 +418,7 @@
+             if i+1 < len(sys.argv):
+                tipo = sys.argv[i+1]
+             else:
+-               tipo = raw_input("Tipo de cierre: ") or "Z"
++               tipo = input("Tipo de cierre: ") or "Z"
+             print("CierreDiario:", controlador.CierreDiario(tipo.upper()))
+         
+         elif '--ult' in sys.argv:
+@@ -421,7 +427,7 @@
+             if i+1 < len(sys.argv):
+                tipo_cbte = int(sys.argv[i+1])
+             else:
+-               tipo_cbte = int(raw_input("Tipo de comprobante: ") or 83)
++               tipo_cbte = int(input("Tipo de comprobante: ") or 83)
+             ult = controlador.ConsultarUltNro(tipo_cbte)
+             print("Ultimo Nro de Cbte:", ult)
+ 
