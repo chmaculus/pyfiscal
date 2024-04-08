@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from pyfiscalprinter.hasarPrinter import HasarPrinter #from hasarPrinter import HasarPrinter
+# from pyfiscalprinter.hasarPrinter import HasarPrinter 
+#from hasarPrinter import HasarPrinter
+from pyfiscalprinter.epsonFiscal import EpsonPrinter 
+#from hasarPrinter import HasarPrinter
 
 import argparse
 import platform

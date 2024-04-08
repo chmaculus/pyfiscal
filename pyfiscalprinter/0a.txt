@@ -1,0 +1,1 @@
+python PybFiscal.py -p com3 -i entrada.txt -o aa.txt -s 9600
