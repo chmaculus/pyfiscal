@@ -1,12 +1,10 @@
 # -*- coding: iso-8859-1 -*-
-from __future__ import print_function
-from __future__ import absolute_import
 import string
 import types
 import logging
 import unicodedata
-from .fiscalGeneric import PrinterInterface, PrinterException
-from . import epsonFiscalDriver
+from fiscalGeneric import PrinterInterface, PrinterException
+import epsonFiscalDriver
 
 class FiscalPrinterError(Exception):
     pass
@@ -93,7 +91,7 @@ class EpsonPrinter(PrinterInterface):
                 deviceFile = deviceFile or 0
                 self.driver = epsonFiscalDriver.EpsonFiscalDriver(deviceFile, speed)
             #self.driver = FileDriver( "/home/gnarvaja/Desktop/fiscal.txt" )
-        except Exception as e:
+        except Exception, e:
             raise FiscalPrinterError("Imposible establecer comunicación.", e)
         if not model:
             self.model = "tickeadoras"
@@ -103,13 +101,13 @@ class EpsonPrinter(PrinterInterface):
         self._currentDocumentType = None
 
     def _sendCommand(self, commandNumber, parameters, skipStatusErrors=False):
-        print("_sendCommand", commandNumber, parameters)
+        print "_sendCommand", commandNumber, parameters
         try:
             logging.getLogger().info("sendCommand: SEND|0x%x|%s|%s" % (commandNumber,
                 skipStatusErrors and "T" or "F",
                                                                      str(parameters)))
             return self.driver.sendCommand(commandNumber, parameters, skipStatusErrors)
-        except epsonFiscalDriver.PrinterException as e:
+        except epsonFiscalDriver.PrinterException, e:
             logging.getLogger().error("epsonFiscalDriver.PrinterException: %s" % str(e))
             raise PrinterException("Error de la impresora fiscal: " + str(e))
 
@@ -283,7 +281,7 @@ class EpsonPrinter(PrinterInterface):
         raise NotImplementedError
 
     def addItem(self, description, quantity, price, iva, discount, discountDescription, negative=False):
-        if type(description) in (str,):
+        if type(description) in types.StringTypes:
             description = [description]
         if negative:
             sign = 'R'

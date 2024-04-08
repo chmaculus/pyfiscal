@@ -1,12 +1,10 @@
 # -*- coding: iso-8859-1 -*-
-from __future__ import print_function
-from __future__ import absolute_import
 import string
 import types
 import logging
 import unicodedata
-from .fiscalGeneric import PrinterInterface, PrinterException
-from . import epsonFiscalDriver
+from fiscalGeneric import PrinterInterface, PrinterException
+import epsonFiscalDriver
 
 
 class ValidationError(Exception):
@@ -55,7 +53,7 @@ class DummyDriver:
     def sendCommand(self, commandNumber, parameters, skipStatusErrors):
         ret = ["C080", "3600", str(self.number), str(self.number), str(self.number), str(self.number),
             str(self.number), str(self.number), str(self.number), str(self.number)]
-        print("sendCommand", ret, parameters)
+        print "sendCommand", ret, parameters
         return ret
 
 
@@ -151,7 +149,7 @@ class HasarPrinter(PrinterInterface):
             else:
                 deviceFile = deviceFile or 0
                 self.driver = epsonFiscalDriver.HasarFiscalDriver(deviceFile, speed)
-        except Exception as e:
+        except Exception, e:
             raise FiscalPrinterError("Imposible establecer comunicación.", e)
         self.model = model
 
@@ -163,7 +161,7 @@ class HasarPrinter(PrinterInterface):
             ret = self.driver.sendCommand(commandNumber, parameters, skipStatusErrors)
             logging.getLogger().info("reply: %s" % ret)
             return ret
-        except epsonFiscalDriver.PrinterException as e:
+        except epsonFiscalDriver.PrinterException, e:
             logging.getLogger().error("epsonFiscalDriver.PrinterException: %s" % str(e))
             raise PrinterException("Error de la impresora fiscal: %s.\nComando enviado: %s" % \
                 (str(e), commandString))
@@ -359,7 +357,7 @@ class HasarPrinter(PrinterInterface):
         raise NotImplementedError
 
     def addItem(self, description, quantity, price, iva, discount, discountDescription, negative=False):
-        if type(description) in (str,):
+        if type(description) in types.StringTypes:
             description = [description]
         if negative:
             sign = 'm'

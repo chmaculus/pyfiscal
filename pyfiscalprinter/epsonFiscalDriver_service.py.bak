@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 # Creado siguiendo ejemplo en http://essiene.blogspot.com/2005/04/python-windows-services.html
 # Seguir los pasos de ese post para hacerlo funcionar
 
@@ -15,7 +14,7 @@ class EpsonFiscalDriverService(win32serviceutil.ServiceFramework):
 	def SvcDoRun(self):
 		import servicemanager
 
-	from .epsonFiscalDriver import socketServer
+	from epsonFiscalDriver import socketServer
 	servicemanager.LogInfoMsg("epsonFiscalDriver - Iniciando Servidor")
 	self.server = socketServer("Hasar", "", 12345, "COM1", 9600, 60, True)
 	servicemanager.LogInfoMsg("epsonFiscalDriver - Servidor Construido, sirviendo eternamente")

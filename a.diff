@@ -1,0 +1,746 @@
+--- ./PybFiscal.py	(original)
++++ ./PybFiscal.py	(refactored)
+@@ -2,6 +2,8 @@
+ # -*- coding: utf-8 -*-
+ # from pyfiscalprinter.hasarPrinter import HasarPrinter 
+ #from hasarPrinter import HasarPrinter
++from __future__ import print_function
++from builtins import str
+ from pyfiscalprinter.epsonFiscal import EpsonPrinter 
+ #from hasarPrinter import HasarPrinter
+ 
+@@ -253,13 +255,13 @@
+ 
+                 elif cmd.startswith('@SetEmbarkNumber'): #@SetEmbarkNumber|1|01-2345
+                     [c, numero_linea_remito_comprobante_original, texto_de_descripcion] = cmd.split('|')
+-                    print "en PyFiscalPrinter no encontré'en donde aplica '@SetEmbarkNumber'"
++                    print("en PyFiscalPrinter no encontré'en donde aplica '@SetEmbarkNumber'")
+ 
+                 elif cmd.startswith('@'):
+-                    print 'No se como ejecutar el comando:', cmd
++                    print('No se como ejecutar el comando:', cmd)
+             else: # not cmd.startswith('@'): #línea NO contiene comando
+                 if len(cmd.strip()) > 1:
+-                    print 'Linea no contiene comando:', cmd
++                    print('Linea no contiene comando:', cmd)
+         #Termino de leer el archivo
+         printer.close() # Libero el puerto de la impresora fiscal
+ 
+--- ./pyfiscalprinter/fiscalGeneric.py	(original)
++++ ./pyfiscalprinter/fiscalGeneric.py	(refactored)
+@@ -1,9 +1,10 @@
+ # -*- coding: iso-8859-1 -*-
+ 
++from builtins import object
+ class PrinterException(RuntimeError):
+     pass
+ 
+-class PrinterInterface:
++class PrinterInterface(object):
+     """Interfaz que deben cumplir las impresoras fiscales."""
+ 
+     # Documentos no fiscales
+--- ./pyfiscalprinter/setup.py	(original)
++++ ./pyfiscalprinter/setup.py	(refactored)
+@@ -1,10 +1,11 @@
+ #!/usr/bin/env python
+ 
++from __future__ import absolute_import
+ from distutils.core import setup
+ 
+ import sys
+ 
+-from __init__ import __version__
++from .__init__ import __version__
+     
+ setup(name='pyfiscalprinter',
+       version=__version__,
+--- ./pyfiscalprinter/epsonFiscalDriver.py	(original)
++++ ./pyfiscalprinter/epsonFiscalDriver.py	(refactored)
+@@ -1,14 +1,23 @@
+ # -*- coding: iso-8859-1 -*-
++from __future__ import print_function
++from future import standard_library
++standard_library.install_aliases()
++from builtins import map
++from builtins import hex
++from builtins import str
++from builtins import chr
++from future.utils import raise_
++from builtins import object
+ import serial
+ import random
+ import time
+ import sys
+-import SocketServer
++import socketserver
+ import socket
+ import traceback
+ 
+ def debugEnabled( *args ):
+-    print >>sys.stderr, " ".join( map(str, args) )
++    print(" ".join( map(str, args) ), file=sys.stderr)
+ 
+ def debugDisabled( *args ):
+     pass
+@@ -35,7 +44,7 @@
+ class ProxyError(PrinterException):
+     errorNumber = 5
+ 
+-class EpsonFiscalDriver:
++class EpsonFiscalDriver(object):
+     WAIT_TIME = 10
+     RETRIES = 4
+     WAIT_CHAR_TIME = 0.1
+@@ -76,7 +85,7 @@
+             self._sequenceNumber = 0x20
+ 
+     def _write( self, s ):
+-        if isinstance(s, unicode):
++        if isinstance(s, str):
+             s = s.encode("latin1")
+         debug( "_write", ", ".join( [ "%x" % ord(c) for c in s ] ) )
+         self._serialPort.write( s )
+@@ -127,13 +136,13 @@
+         x = int( printerStatus, 16 )
+         for value, message in self.printerStatusErrors:
+             if (value & x) == value:
+-                raise PrinterStatusError, message
++                raise_(PrinterStatusError, message)
+ 
+     def _parseFiscalStatus( self, fiscalStatus ):
+         x = int( fiscalStatus, 16 )
+         for value, message in self.fiscalStatusErrors:
+             if (value & x) == value:
+-                raise FiscalStatusError, message
++                raise_(FiscalStatusError, message)
+ 
+     def _sendMessage( self, message ):
+         # Envía el mensaje
+@@ -143,7 +152,7 @@
+         retries = 0
+         while 1:
+             if time.time() > timeout:
+-                raise ComunicationError, "Expiró el tiempo de espera para una respuesta de la impresora. Revise la conexión."
++                raise ComunicationError("Expiró el tiempo de espera para una respuesta de la impresora. Revise la conexión.")
+             c = self._read(1)
+             if len(c) == 0:
+                 continue
+@@ -153,7 +162,7 @@
+                 continue
+             if ord(c) == 0x15: # NAK
+                 if retries > self.RETRIES:
+-                    raise ComunicationError, "Falló el envío del comando a la impresora luego de varios reintentos"
++                    raise ComunicationError("Falló el envío del comando a la impresora luego de varios reintentos")
+                 # Reenvío el mensaje
+                 self._write( message )
+                 timeout = time.time() + self.WAIT_TIME
+@@ -168,7 +177,7 @@
+                         noreplyCounter += 1
+                         time.sleep(self.WAIT_CHAR_TIME)
+                         if noreplyCounter > self.NO_REPLY_TRIES:
+-                            raise ComunicationError, "Fallo de comunicación mientras se recibía la respuesta de la impresora."
++                            raise ComunicationError("Fallo de comunicación mientras se recibía la respuesta de la impresora.")
+                     else:
+                         noreplyCounter = 0
+                         reply += c
+@@ -179,7 +188,7 @@
+                     timeout = time.time() + self.WAIT_TIME
+                     retries += 1
+                     if retries > self.RETRIES:
+-                        raise ComunicationError, "Fallo de comunicación, demasiados paquetes inválidos (bad bcc)."
++                        raise ComunicationError("Fallo de comunicación, demasiados paquetes inválidos (bad bcc).")
+                     continue
+                 elif reply[1] != chr( self._sequenceNumber ): # Los número de seq no coinciden
+                     # Reenvío el mensaje
+@@ -187,7 +196,7 @@
+                     timeout = time.time() + self.WAIT_TIME
+                     retries +=1
+                     if retries > self.RETRIES:
+-                        raise ComunicationError, "Fallo de comunicación, demasiados paquetes inválidos (mal sequence_number)."
++                        raise ComunicationError("Fallo de comunicación, demasiados paquetes inválidos (mal sequence_number).")
+                     continue
+                 else:
+                     # Respuesta OK
+@@ -242,12 +251,12 @@
+ 
+     def _sendAndWaitAck( self, message, count = 0 ):
+         if count > 10:
+-            raise ComunicationError, "Demasiados NAK desde la impresora. Revise la conexión."
++            raise ComunicationError("Demasiados NAK desde la impresora. Revise la conexión.")
+         self._write( message )
+         timeout = time.time() + self.WAIT_TIME
+         while 1:
+             if time.time() > timeout:
+-                raise ComunicationError, "Expiró el tiempo de espera para una respuesta de la impresora. Revise la conexión."
++                raise ComunicationError("Expiró el tiempo de espera para una respuesta de la impresora. Revise la conexión.")
+             c = self._read(1)
+             if len(c) == 0:
+                 continue
+@@ -264,7 +273,7 @@
+         retries = 0
+         while 1:
+             if time.time() > timeout:
+-                raise ComunicationError, "Expiró el tiempo de espera para una respuesta de la impresora. Revise la conexión."
++                raise ComunicationError("Expiró el tiempo de espera para una respuesta de la impresora. Revise la conexión.")
+             c = self._read(1)
+             if len(c) == 0:
+                 continue
+@@ -289,7 +298,7 @@
+                         noreplyCounter += 1
+                         time.sleep(self.WAIT_CHAR_TIME)
+                         if noreplyCounter > self.NO_REPLY_TRIES:
+-                            raise ComunicationError, "Fallo de comunicación mientras se recibía la respuesta de la impresora."
++                            raise ComunicationError("Fallo de comunicación mientras se recibía la respuesta de la impresora.")
+                     else:
+                         noreplyCounter = 0
+                         reply += c
+@@ -300,7 +309,7 @@
+                     timeout = time.time() + self.WAIT_TIME
+                     retries += 1
+                     if retries > self.RETRIES:
+-                        raise ComunicationError, "Fallo de comunicación, demasiados paquetes inválidos (bad bcc)."
++                        raise ComunicationError("Fallo de comunicación, demasiados paquetes inválidos (bad bcc).")
+                     continue
+                 elif reply[1] != chr( self._sequenceNumber ): # Los número de seq no coinciden
+                     # Reenvío el mensaje
+@@ -309,7 +318,7 @@
+                     timeout = time.time() + self.WAIT_TIME
+                     retries +=1
+                     if retries > self.RETRIES:
+-                        raise ComunicationError, "Fallo de comunicación, demasiados paquetes inválidos (bad sequenceNumber)."
++                        raise ComunicationError("Fallo de comunicación, demasiados paquetes inválidos (bad sequenceNumber).")
+                     continue
+                 else:
+                     # Respuesta OK
+@@ -317,16 +326,16 @@
+                     break
+         return reply
+ 
+-class DummyDriver:
++class DummyDriver(object):
+     def close(self):
+         pass
+ 
+     def sendCommand(self, commandNumber, parameters, skipStatusErrors):
+-        print commandNumber, parameters, skipStatusErrors
++        print(commandNumber, parameters, skipStatusErrors)
+         number = random.randint(0, 99999999)
+         return ["00", "00"] + [str(number)] * 11
+ 
+-class EpsonFiscalDriverProxy:
++class EpsonFiscalDriverProxy(object):
+     def __init__( self, host, port, timeout = 60.0, connectOnEveryCommand = False ):
+         self.connectOnEveryCommand = connectOnEveryCommand
+         self.timeout = timeout
+@@ -340,7 +349,7 @@
+         self.socket.settimeout( self.timeout )
+         try:
+             self.socket.connect( (self.host, self.port ) )
+-        except socket.error, e:
++        except socket.error as e:
+             raise ProxyError( "Error conectandose a la impresora remota: %s." % str(e) )
+         self.socketFile = self.socket.makefile( "rw", 1 )
+ 
+@@ -364,7 +373,7 @@
+             return eval( reply[7:] )
+         elif reply[:5] == "ERROR":
+             errorNum = int(reply[7:9])
+-            errorClass = filter( lambda x: x.errorNumber == errorNum, ServerErrors )
++            errorClass = [x for x in ServerErrors if x.errorNumber == errorNum]
+             if errorClass:
+                 raise errorClass[0]( reply[10:] )
+             else:
+@@ -407,25 +416,25 @@
+         parameters = eval(commandLine[12:].strip())
+         try:
+             reply = p.sendCommand( commandNumber, parameters, skipStatusErrors )
+-        except PrinterException, e:
++        except PrinterException as e:
+             fileOut.write( "ERROR: %02d %s\n" % (e.errorNumber, str(e)) )
+-        except Exception, e:
++        except Exception as e:
+             fileOut.write( "ERROR: %02d %s\n" % (1, str(e)) )
+         else:
+             fileOut.write( "REPLY: %s\n" % reply )
+         fileOut.flush()
+     p.close()
+ 
+-class ReusableTCPServer(SocketServer.TCPServer):
++class ReusableTCPServer(socketserver.TCPServer):
+     def server_bind(self):
+         """Override server_bind to set socket options."""
+         self.socket.setsockopt(socket.SOL_SOCKET,
+             socket.SO_REUSEADDR, 1)
+-        return SocketServer.TCPServer.server_bind(self)
++        return socketserver.TCPServer.server_bind(self)
+ 
+ 
+ def socketServer(printerType, host, port, deviceFile, speed, timeout = 60, returnServer=False):
+-    class Handler( SocketServer.StreamRequestHandler ):
++    class Handler( socketserver.StreamRequestHandler ):
+         rbufsize = 1
+         wbufsize = 1
+         def handle( self ):
+--- ./pyfiscalprinter/agente.py	(original)
++++ ./pyfiscalprinter/agente.py	(refactored)
+@@ -11,18 +11,22 @@
+ # for more details.
+ 
+ "Servidor local HTTP JSONP para aplicaciones web con controladores fiscales"
++from __future__ import print_function
++from __future__ import absolute_import
+ 
++from future import standard_library
++standard_library.install_aliases()
+ __author__ = "Mariano Reingart <reingart@gmail.com>"
+ __copyright__ = "Copyright (C) 2014 Mariano Reingart"
+ __license__ = "GPL 3.0"
+ __version__ = "1.00a"
+ 
+-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
++from http.server import BaseHTTPRequestHandler, HTTPServer
+ import cgi
+ import time
+ import os
+ 
+-from controlador import ControladorFiscal
++from .controlador import ControladorFiscal
+ 
+ # ejemplo para http://localhost:8000 :
+ 
+@@ -71,7 +75,7 @@
+                 # obtengo la funciÃ³n a llamar
+                 fn = getattr(self.server.controlador, method) 
+                 callback = qs['callback'].pop()
+-                kwargs = dict([(k, v[0]) for k, v in qs.items() if v])
++                kwargs = dict([(k, v[0]) for k, v in list(qs.items()) if v])
+                 # ejecuto el mÃ©todo del controlador
+                 ret = fn(**kwargs)
+                 # reviso el valor devuelto (limpio si es excepciÃ³n):
+@@ -88,7 +92,7 @@
+                     # devuelvo JS que llame al callback en el navegador:
+                     content = """%s(%s);""" % (callback, repr(ret))
+                 content_type = "application/javascript"
+-                print content
++                print(content)
+             else:
+                 # prueba simple:
+                 content_type = "application/javascript"
+--- ./pyfiscalprinter/hasarPrinter.py	(original)
++++ ./pyfiscalprinter/hasarPrinter.py	(refactored)
+@@ -1,10 +1,16 @@
+ # -*- coding: iso-8859-1 -*-
++from __future__ import print_function
++from __future__ import absolute_import
++from builtins import chr
++from builtins import str
++from builtins import range
++from builtins import object
+ import string
+ import types
+ import logging
+ import unicodedata
+-from fiscalGeneric import PrinterInterface, PrinterException
+-import epsonFiscalDriver
++from .fiscalGeneric import PrinterInterface, PrinterException
++from . import epsonFiscalDriver
+ 
+ 
+ class ValidationError(Exception):
+@@ -15,7 +21,7 @@
+     pass
+ 
+ 
+-class FileDriver:
++class FileDriver(object):
+ 
+     def __init__(self, filename):
+         self.filename = filename
+@@ -32,7 +38,7 @@
+ 
+ 
+ def formatText(text):
+-    asciiText = unicodedata.normalize('NFKD', unicode(text)).encode('ASCII', 'ignore')
++    asciiText = unicodedata.normalize('NFKD', str(text)).encode('ASCII', 'ignore')
+     asciiText = asciiText.replace("\t", " ").replace("\n", " ").replace("\r", " ")
+     return asciiText
+ 
+@@ -40,7 +46,7 @@
+ NUMBER = 999990
+ 
+ 
+-class DummyDriver:
++class DummyDriver(object):
+ 
+     def __init__(self):
+         global NUMBER
+@@ -53,7 +59,7 @@
+     def sendCommand(self, commandNumber, parameters, skipStatusErrors):
+         ret = ["C080", "3600", str(self.number), str(self.number), str(self.number), str(self.number),
+             str(self.number), str(self.number), str(self.number), str(self.number)]
+-        print "sendCommand", ret, parameters
++        print("sendCommand", ret, parameters)
+         return ret
+ 
+ 
+@@ -149,7 +155,7 @@
+             else:
+                 deviceFile = deviceFile or 0
+                 self.driver = epsonFiscalDriver.HasarFiscalDriver(deviceFile, speed)
+-        except Exception, e:
++        except Exception as e:
+             raise FiscalPrinterError("Imposible establecer comunicación.", e)
+         self.model = model
+ 
+@@ -161,7 +167,7 @@
+             ret = self.driver.sendCommand(commandNumber, parameters, skipStatusErrors)
+             logging.getLogger().info("reply: %s" % ret)
+             return ret
+-        except epsonFiscalDriver.PrinterException, e:
++        except epsonFiscalDriver.PrinterException as e:
+             logging.getLogger().error("epsonFiscalDriver.PrinterException: %s" % str(e))
+             raise PrinterException("Error de la impresora fiscal: %s.\nComando enviado: %s" % \
+                 (str(e), commandString))
+@@ -236,7 +242,7 @@
+         self.setHeader()
+         self.setTrailer()
+         doc = doc.replace("-", "").replace(".", "")
+-        if doc and docType != "3" and filter(lambda x: x not in string.digits, doc):
++        if doc and docType != "3" and [x for x in doc if x not in string.digits]:
+             # Si tiene letras se blanquea el DNI para evitar errores, excepto que sea
+             # docType="3" (Pasaporte)
+             doc, docType = " ", " "
+@@ -357,7 +363,7 @@
+         raise NotImplementedError
+ 
+     def addItem(self, description, quantity, price, iva, discount, discountDescription, negative=False):
+-        if type(description) in types.StringTypes:
++        if type(description) in (str,):
+             description = [description]
+         if negative:
+             sign = 'm'
+--- ./pyfiscalprinter/epsonFiscal.py	(original)
++++ ./pyfiscalprinter/epsonFiscal.py	(refactored)
+@@ -1,16 +1,24 @@
+ # -*- coding: iso-8859-1 -*-
++from __future__ import division
++from __future__ import print_function
++from __future__ import absolute_import
++from builtins import input
++from builtins import chr
++from builtins import str
++from past.utils import old_div
++from builtins import object
+ import string
+ import types
+ import logging
+ import unicodedata
+-from fiscalGeneric import PrinterInterface, PrinterException
+-import epsonFiscalDriver
++from .fiscalGeneric import PrinterInterface, PrinterException
++from . import epsonFiscalDriver
+ 
+ class FiscalPrinterError(Exception):
+     pass
+ 
+ 
+-class FileDriver:
++class FileDriver(object):
+ 
+     def __init__(self, filename):
+         self.filename = filename
+@@ -25,16 +33,16 @@
+ 
+ 
+ def formatText(text):
+-    asciiText = unicodedata.normalize('NFKD', unicode(text)).encode('ASCII', 'ignore')
++    asciiText = unicodedata.normalize('NFKD', str(text)).encode('ASCII', 'ignore')
+     asciiText = asciiText.replace("\t", " ").replace("\n", " ").replace("\r", " ")
+     return asciiText
+ 
+ 
+-class DummyDriver:
++class DummyDriver(object):
+ 
+     def __init__(self):
+         try:
+-            self.number = int(raw_input("Ingrese el número de la última factura: "))
++            self.number = int(input("Ingrese el número de la última factura: "))
+         except EOFError:
+             # iniciar desde 0 (ejecutando sin stdin)
+             self.number = 0
+@@ -91,7 +99,7 @@
+                 deviceFile = deviceFile or 0
+                 self.driver = epsonFiscalDriver.EpsonFiscalDriver(deviceFile, speed)
+             #self.driver = FileDriver( "/home/gnarvaja/Desktop/fiscal.txt" )
+-        except Exception, e:
++        except Exception as e:
+             raise FiscalPrinterError("Imposible establecer comunicación.", e)
+         if not model:
+             self.model = "tickeadoras"
+@@ -101,13 +109,13 @@
+         self._currentDocumentType = None
+ 
+     def _sendCommand(self, commandNumber, parameters, skipStatusErrors=False):
+-        print "_sendCommand", commandNumber, parameters
++        print("_sendCommand", commandNumber, parameters)
+         try:
+             logging.getLogger().info("sendCommand: SEND|0x%x|%s|%s" % (commandNumber,
+                 skipStatusErrors and "T" or "F",
+                                                                      str(parameters)))
+             return self.driver.sendCommand(commandNumber, parameters, skipStatusErrors)
+-        except epsonFiscalDriver.PrinterException, e:
++        except epsonFiscalDriver.PrinterException as e:
+             logging.getLogger().error("epsonFiscalDriver.PrinterException: %s" % str(e))
+             raise PrinterException("Error de la impresora fiscal: " + str(e))
+ 
+@@ -167,7 +175,7 @@
+ 
+     def _openBillCreditTicket(self, type, name, address, doc, docType, ivaType, isCreditNote,
+             reference=None):
+-        if not doc or filter(lambda x: x not in string.digits + "-.", doc or "") or not \
++        if not doc or [x for x in doc or "" if x not in string.digits + "-."] or not \
+                 docType in self.docTypeNames:
+             doc, docType = "", ""
+         else:
+@@ -281,7 +289,7 @@
+         raise NotImplementedError
+ 
+     def addItem(self, description, quantity, price, iva, discount, discountDescription, negative=False):
+-        if type(description) in types.StringTypes:
++        if type(description) in (str,):
+             description = [description]
+         if negative:
+             sign = 'R'
+@@ -298,10 +306,10 @@
+         else:
+             if self.model == "tm-220-af":
+                 # enviar sin el iva (factura A)
+-                priceUnitStr =  "%0.4f" % (price / ((100.0 + iva) / 100.0))
++                priceUnitStr =  "%0.4f" % (old_div(price, ((100.0 + iva) / 100.0)))
+             else:
+                 # enviar sin el iva (factura A)
+-                priceUnitStr = str(int(round((price / ((100 + iva) / 100)) * 100, 0)))
++                priceUnitStr = str(int(round((old_div(price, (old_div((100 + iva), 100)))) * 100, 0)))
+         ivaStr = str(int(iva * 100))
+         extraparams = self._currentDocument in (self.CURRENT_DOC_BILL_TICKET,
+             self.CURRENT_DOC_CREDIT_TICKET) and ["", "", ""] or []
+@@ -351,7 +359,7 @@
+             priceUnitStr = str(int(round(priceUnit * 100, 0)))
+         else:
+             # enviar sin el iva (factura A)
+-            priceUnitStr = str(int(round((priceUnit / ((100 + iva) / 100)) * 100, 0)))
++            priceUnitStr = str(int(round((old_div(priceUnit, (old_div((100 + iva), 100)))) * 100, 0)))
+         ivaStr = str(int(iva * 100))
+         extraparams = self._currentDocument in (self.CURRENT_DOC_BILL_TICKET,
+             self.CURRENT_DOC_CREDIT_TICKET) and ["", "", ""] or []
+--- ./pyfiscalprinter/controlador.py	(original)
++++ ./pyfiscalprinter/controlador.py	(refactored)
+@@ -11,11 +11,19 @@
+ # for more details.
+ 
+ "Interfaz de alto nivel para automatización de controladores fiscales"
+-
++from __future__ import division
++from __future__ import print_function
++from __future__ import absolute_import
++
++from future import standard_library
++standard_library.install_aliases()
++from builtins import str
++from builtins import input
++from past.utils import old_div
+ __author__ = "Mariano Reingart <reingart@gmail.com>"
+ __copyright__ = "Copyright (C) 2014 Mariano Reingart"
+ __license__ = "GPL 3.0"
+-from __init__ import __version__
++from .__init__ import __version__
+ 
+ CONFIG_FILE = "fiscal.ini"
+ DEBUG = True
+@@ -56,14 +64,14 @@
+ import os
+ import sys
+ import traceback
+-from cStringIO import StringIO
++from io import StringIO
+ from decimal import Decimal
+ from functools import wraps
+ 
+ # Drivers:
+ 
+-from epsonFiscal import EpsonPrinter
+-from hasarPrinter import HasarPrinter
++from .epsonFiscal import EpsonPrinter
++from .hasarPrinter import HasarPrinter
+ 
+ 
+ try:
+@@ -84,10 +92,10 @@
+             # inicializo (limpio variables)
+             self.Traceback = self.Excepcion = ""
+             return func(self, *args, **kwargs)
+-        except Exception, e:
+-            ex = traceback.format_exception( sys.exc_type, sys.exc_value, sys.exc_traceback)
++        except Exception as e:
++            ex = traceback.format_exception( sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
+             self.Traceback = ''.join(ex)
+-            self.Excepcion = traceback.format_exception_only( sys.exc_type, sys.exc_value)[0]
++            self.Excepcion = traceback.format_exception_only( sys.exc_info()[0], sys.exc_info()[1])[0]
+             if self.LanzarExcepciones:
+                 raise
+         finally:
+@@ -222,7 +230,7 @@
+                                               domicilio_cliente, nro_doc, doc_fiscal, 
+                                               pos_fiscal)
+         elif cbte_fiscal.startswith("NC"):
+-            if isinstance(referencia, unicode):
++            if isinstance(referencia, str):
+                 referencia = referencia.encode("latin1", "ignore")
+             ret = printer.openBillCreditTicket(letra_cbte, nombre_cliente, 
+                                                domicilio_cliente, nro_doc, doc_fiscal, 
+@@ -292,11 +300,11 @@
+     def Subtotal(self, imprimir=True):
+         "Devuelve el subtotal y lo imprime (opcional)"
+         ret = self.printer.subtotal(imprimir)
+-        print ret
++        print(ret)
+         if len(ret) == 10:      # epson
+             qty = int(ret[3])
+-            subtotal = str(decimal.Decimal(ret[4]) / decimal.Decimal("100.000"))
+-            imp_iva = str(decimal.Decimal(ret[5]) / decimal.Decimal("100.000"))
++            subtotal = str(old_div(decimal.Decimal(ret[4]), decimal.Decimal("100.000")))
++            imp_iva = str(old_div(decimal.Decimal(ret[5]), decimal.Decimal("100.000")))
+         elif len(ret) == 8:     # hasar
+             qty = ret[2]
+             subtotal = ret[3]
+@@ -362,17 +370,17 @@
+         name = dbus.service.BusName("ar.com.pyfiscalprinter.Service", session_bus)
+         object = PyFiscalPrinter(session_bus, '/ar/com/pyfiscalprinter/Object')
+         mainloop = gobject.MainLoop()
+-        print "Running PyFiscalPrinter service."
++        print("Running PyFiscalPrinter service.")
+         mainloop.run()
+     else:
+-        from ConfigParser import SafeConfigParser
++        from configparser import SafeConfigParser
+ 
+         DEBUG = '--debug' in sys.argv
+                 
+         # leeo configuración (primer argumento o rece.ini por defecto)
+         if len(sys.argv)>1 and not sys.argv[1].startswith("--"):
+             CONFIG_FILE = sys.argv.pop(1)
+-        if DEBUG: print "CONFIG_FILE:", CONFIG_FILE
++        if DEBUG: print("CONFIG_FILE:", CONFIG_FILE)
+         
+         config = SafeConfigParser()
+         config.read(CONFIG_FILE)
+@@ -382,11 +390,11 @@
+             conf = {}
+ 
+         if '--ayuda' in sys.argv:
+-            print AYUDA
++            print(AYUDA)
+             sys.exit(0)
+ 
+         if '--licencia' in sys.argv:
+-            print LICENCIA
++            print(LICENCIA)
+             sys.exit(0)
+             
+         controlador = PyFiscalPrinter()
+@@ -410,18 +418,18 @@
+             if i+1 < len(sys.argv):
+                tipo = sys.argv[i+1]
+             else:
+-               tipo = raw_input("Tipo de cierre: ") or "Z"
+-            print "CierreDiario:", controlador.CierreDiario(tipo.upper())
++               tipo = input("Tipo de cierre: ") or "Z"
++            print("CierreDiario:", controlador.CierreDiario(tipo.upper()))
+         
+         elif '--ult' in sys.argv:
+-            print "Consultar ultimo numero:"
++            print("Consultar ultimo numero:")
+             i = sys.argv.index("--ult")
+             if i+1 < len(sys.argv):
+                tipo_cbte = int(sys.argv[i+1])
+             else:
+-               tipo_cbte = int(raw_input("Tipo de comprobante: ") or 83)
++               tipo_cbte = int(input("Tipo de comprobante: ") or 83)
+             ult = controlador.ConsultarUltNro(tipo_cbte)
+-            print "Ultimo Nro de Cbte:", ult
++            print("Ultimo Nro de Cbte:", ult)
+ 
+         elif '--prueba' in sys.argv:
+             # creo una factura de ejemplo
+@@ -471,15 +479,15 @@
+                 ok = controlador.ImprimirPago(**pago)
+             ok = controlador.CerrarComprobante()
+             if ok:
+-                print "Nro. Cbte. impreso:", controlador.factura["nro_cbte"]
++                print("Nro. Cbte. impreso:", controlador.factura["nro_cbte"])
+                 if "subtotal" in factura:
+-                    print "Cant.Articulos:", controlador.factura["qty"]
+-                    print "Subtotal:", controlador.factura["subtotal"]  
+-                    print "IVA liq.:", controlador.factura["imp_iva"]
++                    print("Cant.Articulos:", controlador.factura["qty"])
++                    print("Subtotal:", controlador.factura["subtotal"])  
++                    print("IVA liq.:", controlador.factura["imp_iva"])
+ 
+             with open(conf.get("salida", "factura.json"), "w") as f:
+                 f = codecs.getwriter(conf.get("encoding", "utf8"))(f)
+                 json.dump(controlador.factura, f, 
+                           indent=4, separators=(',', ': '))
+-            print "Hecho."
+-
++            print("Hecho.")
++
+--- ./pyfiscalprinter/epsonFiscalDriver_service.py	(original)
++++ ./pyfiscalprinter/epsonFiscalDriver_service.py	(refactored)
+@@ -1,3 +1,4 @@
++from __future__ import absolute_import
+ # Creado siguiendo ejemplo en http://essiene.blogspot.com/2005/04/python-windows-services.html
+ # Seguir los pasos de ese post para hacerlo funcionar
+ 
+@@ -14,7 +15,7 @@
+ 	def SvcDoRun(self):
+ 		import servicemanager
+ 
+-	from epsonFiscalDriver import socketServer
++	from .epsonFiscalDriver import socketServer
+ 	servicemanager.LogInfoMsg("epsonFiscalDriver - Iniciando Servidor")
+ 	self.server = socketServer("Hasar", "", 12345, "COM1", 9600, 60, True)
+ 	servicemanager.LogInfoMsg("epsonFiscalDriver - Servidor Construido, sirviendo eternamente")
+--- ./pyfiscalprinter/test.py	(original)
++++ ./pyfiscalprinter/test.py	(refactored)
+@@ -1,22 +1,24 @@
+ # -*- coding: iso-8859-1 -*-
+ 
++from __future__ import print_function
++from __future__ import absolute_import
+ import sys
+ 
+ # Crear el controlador para la impresora fiscal:
+ if False or '--epson' in sys.argv:
+-    from epsonFiscal import EpsonPrinter
+-    print "Usando driver de Epson"
++    from .epsonFiscal import EpsonPrinter
++    print("Usando driver de Epson")
+     model = ["tickeadoras", "epsonlx300+", "tm-220-af"][1]
+     printer = EpsonPrinter(deviceFile="COM2", model=model, dummy=False)
+ else:
+-    from hasarPrinter import HasarPrinter
+-    print "Usando driver de Hasar"
++    from .hasarPrinter import HasarPrinter
++    print("Usando driver de Hasar")
+     model = ["615", "715v1", "715v2", "320"][0]
+     printer = HasarPrinter(deviceFile="COM2", model=model, dummy=False)
+ 
+ # Obtener el Ãºltimo nÃºmero de factura emitida
+ number = printer.getLastNumber("B") + 1
+-print "imprimiendo la FC ", number
++print("imprimiendo la FC ", number)
+ 
+ # Abrir un comprobante fiscal:
+ if model in ("epsonlx300+", ):

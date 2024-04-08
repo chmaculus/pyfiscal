@@ -11,8 +11,6 @@
 # for more details.
 
 "Servidor local HTTP JSONP para aplicaciones web con controladores fiscales"
-from __future__ import print_function
-from __future__ import absolute_import
 
 __author__ = "Mariano Reingart <reingart@gmail.com>"
 __copyright__ = "Copyright (C) 2014 Mariano Reingart"
@@ -24,7 +22,7 @@ import cgi
 import time
 import os
 
-from .controlador import ControladorFiscal
+from controlador import ControladorFiscal
 
 # ejemplo para http://localhost:8000 :
 
@@ -90,7 +88,7 @@ class Handler(BaseHTTPRequestHandler):
                     # devuelvo JS que llame al callback en el navegador:
                     content = """%s(%s);""" % (callback, repr(ret))
                 content_type = "application/javascript"
-                print(content)
+                print content
             else:
                 # prueba simple:
                 content_type = "application/javascript"

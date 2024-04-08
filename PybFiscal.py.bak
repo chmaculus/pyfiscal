@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 # from pyfiscalprinter.hasarPrinter import HasarPrinter 
 #from hasarPrinter import HasarPrinter
-from __future__ import print_function
 from pyfiscalprinter.epsonFiscal import EpsonPrinter 
 #from hasarPrinter import HasarPrinter
 
@@ -254,13 +253,13 @@ UNIX:   ixbatch.py -p /dev/tty2a -i entrada.txt -o salida.txt -s 9600
 
                 elif cmd.startswith('@SetEmbarkNumber'): #@SetEmbarkNumber|1|01-2345
                     [c, numero_linea_remito_comprobante_original, texto_de_descripcion] = cmd.split('|')
-                    print("en PyFiscalPrinter no encontré'en donde aplica '@SetEmbarkNumber'")
+                    print "en PyFiscalPrinter no encontré'en donde aplica '@SetEmbarkNumber'"
 
                 elif cmd.startswith('@'):
-                    print('No se como ejecutar el comando:', cmd)
+                    print 'No se como ejecutar el comando:', cmd
             else: # not cmd.startswith('@'): #línea NO contiene comando
                 if len(cmd.strip()) > 1:
-                    print('Linea no contiene comando:', cmd)
+                    print 'Linea no contiene comando:', cmd
         #Termino de leer el archivo
         printer.close() # Libero el puerto de la impresora fiscal
 
